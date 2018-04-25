@@ -1,7 +1,6 @@
 package com.qi;
 
 import android.support.v7.widget.RecyclerView;
-import android.view.FocusFinder;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -14,8 +13,8 @@ public abstract class RefreshAdapter extends RecyclerView.Adapter {
 
     private View headerView;
     private View footerView;
-    public static final int HEADER_TYPE = 1;
-    public static final int FOOTER_TYPE = 2;
+    private static final int HEADER_TYPE = 1;
+    private static final int FOOTER_TYPE = 2;
 
     public void setHeader(View header) {
         this.headerView = header;
@@ -36,8 +35,6 @@ public abstract class RefreshAdapter extends RecyclerView.Adapter {
         return onNormalCreateViewHolder(parent);
     }
 
-    public abstract RecyclerView.ViewHolder onNormalCreateViewHolder(ViewGroup parent);
-
     @Override
     public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
         if (getItemViewType(position) == HEADER_TYPE)
@@ -45,17 +42,53 @@ public abstract class RefreshAdapter extends RecyclerView.Adapter {
         else if (getItemViewType(position) == FOOTER_TYPE)
             onBindFooterViewHolder(holder, position);
         else {
-            if (headerView!=null){
-                position = position-1;
+            if (headerView != null) {
+                position = position - 1;
             }
             onBindNormalViewHolder(holder, position);
         }
     }
 
+    public void notifyDataSetChanged_override() {
+        setFooter(null);
+        notifyDataSetChanged();
+    }
+
+    public final void notifyItemRangeChanged_override(int positionStart, int itemCount) {
+        setFooter(null);
+        notifyItemRangeChanged(positionStart, itemCount);
+    }
+
+    public final void notifyItemRangeChanged_override(int positionStart, int itemCount, Object payload) {
+        setFooter(null);
+        notifyItemRangeChanged(positionStart, itemCount, payload);
+    }
+
+
+    public abstract RecyclerView.ViewHolder onNormalCreateViewHolder(ViewGroup parent);
+
+    /**
+     * 数据条目展示
+     *
+     * @param holder
+     * @param position
+     */
     protected abstract void onBindNormalViewHolder(RecyclerView.ViewHolder holder, int position);
 
+    /**
+     * footerView
+     *
+     * @param holder
+     * @param position
+     */
     protected abstract void onBindFooterViewHolder(RecyclerView.ViewHolder holder, int position);
 
+    /**
+     * HeaderView
+     *
+     * @param holder
+     * @param position
+     */
     protected abstract void onBindHeaderViewHolder(RecyclerView.ViewHolder holder, int position);
 
     @Override
@@ -82,9 +115,8 @@ public abstract class RefreshAdapter extends RecyclerView.Adapter {
         return super.getItemViewType(position);
     }
 
-    public static class ViewHolder extends RecyclerView.ViewHolder {
-
-        public ViewHolder(View itemView) {
+    static class ViewHolder extends RecyclerView.ViewHolder {
+        ViewHolder(View itemView) {
             super(itemView);
         }
     }

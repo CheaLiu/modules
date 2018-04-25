@@ -117,40 +117,14 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        TextView footer = new TextView(this);
+        footer.setText("底部啦");
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        RefreshAdapter adapter = new RefreshAdapter() {
-            @Override
-            public RecyclerView.ViewHolder onNormalCreateViewHolder(ViewGroup parent) {
-                return new MainActivity.ViewHolder(new TextView(parent.getContext()));
-            }
-
-            @Override
-            protected void onBindNormalViewHolder(RecyclerView.ViewHolder holder, int position) {
-                TextView itemView = (TextView) holder.itemView;
-                itemView.setText(data[position] + "---------" + position);
-            }
-
-            @Override
-            protected void onBindFooterViewHolder(RecyclerView.ViewHolder holder, int position) {
-
-            }
-
-            @Override
-            protected void onBindHeaderViewHolder(RecyclerView.ViewHolder holder, int position) {
-
-            }
-
-            @Override
-            public int getDataCount() {
-                return data.length;
-            }
-        };
-        adapter.setFooter(null);
-        adapter.setHeader(null);
+        RefreshAdapter adapter = new MyAdapter(data);
         recyclerView.setAdapter(adapter);
         try {
-            RefreshManager.newInstance(this, new RefreshManager.OnLoadListener() {
+            RefreshManager.newInstance(this, null, footer, new RefreshManager.OnLoadListener() {
                 @Override
                 public void load() {
 
@@ -158,13 +132,6 @@ public class MainActivity extends AppCompatActivity {
             });
         } catch (IllegalAccessException e) {
             e.printStackTrace();
-        }
-    }
-
-    public static class ViewHolder extends RecyclerView.ViewHolder {
-
-        public ViewHolder(View itemView) {
-            super(itemView);
         }
     }
 }
