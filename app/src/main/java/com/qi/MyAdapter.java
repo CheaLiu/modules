@@ -5,15 +5,17 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import java.util.ArrayList;
+
 /**
  * Creator  liuqi
  * Data     2018/4/25
  * Class    com.qi.MyAdapter
  */
 public class MyAdapter extends RefreshAdapter {
-    private String[] data;
+    private ArrayList<String> data;
 
-    public MyAdapter(String[] data) {
+    public MyAdapter(ArrayList<String> data) {
         this.data = data;
     }
 
@@ -25,13 +27,8 @@ public class MyAdapter extends RefreshAdapter {
     @Override
     protected void onBindNormalViewHolder(RecyclerView.ViewHolder holder, int position) {
         TextView itemView = (TextView) holder.itemView;
-        itemView.setText(data[position] + "---------" + position);
-        itemView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                notifyDataSetChanged_override();
-            }
-        });
+        itemView.setPadding(30,30,30,30);
+        itemView.setText(data.get(position) + "---------" + position);
     }
 
     @Override
@@ -46,6 +43,6 @@ public class MyAdapter extends RefreshAdapter {
 
     @Override
     public int getDataCount() {
-        return data.length;
+        return data.size();
     }
 }

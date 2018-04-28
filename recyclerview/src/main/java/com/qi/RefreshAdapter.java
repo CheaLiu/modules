@@ -11,27 +11,33 @@ import android.view.ViewGroup;
  */
 public abstract class RefreshAdapter extends RecyclerView.Adapter {
 
-    private View headerView;
-    private View footerView;
+    private View mHeaderView;
+    private View mFooterView;
     private static final int HEADER_TYPE = 1;
     private static final int FOOTER_TYPE = 2;
 
-    public void setHeader(View header) {
-        this.headerView = header;
+    public void setHeader(View headerView) {
+        if (mHeaderView == headerView) {
+            return;
+        }
+        this.mHeaderView = headerView;
         notifyItemChanged(0);
     }
 
     public void setFooter(View footerView) {
-        this.footerView = footerView;
+        if (this.mFooterView == footerView) {
+            return;
+        }
+        this.mFooterView = footerView;
         notifyItemChanged(getItemCount() - 1);
     }
 
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         if (viewType == HEADER_TYPE)
-            return new ViewHolder(headerView);
+            return new ViewHolder(mHeaderView);
         else if (viewType == FOOTER_TYPE)
-            return new ViewHolder(footerView);
+            return new ViewHolder(mFooterView);
         return onNormalCreateViewHolder(parent);
     }
 
@@ -42,28 +48,12 @@ public abstract class RefreshAdapter extends RecyclerView.Adapter {
         else if (getItemViewType(position) == FOOTER_TYPE)
             onBindFooterViewHolder(holder, position);
         else {
-            if (headerView != null) {
+            if (mHeaderView != null) {
                 position = position - 1;
             }
             onBindNormalViewHolder(holder, position);
         }
     }
-
-    public void notifyDataSetChanged_override() {
-        setFooter(null);
-        notifyDataSetChanged();
-    }
-
-    public final void notifyItemRangeChanged_override(int positionStart, int itemCount) {
-        setFooter(null);
-        notifyItemRangeChanged(positionStart, itemCount);
-    }
-
-    public final void notifyItemRangeChanged_override(int positionStart, int itemCount, Object payload) {
-        setFooter(null);
-        notifyItemRangeChanged(positionStart, itemCount, payload);
-    }
-
 
     public abstract RecyclerView.ViewHolder onNormalCreateViewHolder(ViewGroup parent);
 
@@ -76,7 +66,7 @@ public abstract class RefreshAdapter extends RecyclerView.Adapter {
     protected abstract void onBindNormalViewHolder(RecyclerView.ViewHolder holder, int position);
 
     /**
-     * footerView
+     * mFooterView
      *
      * @param holder
      * @param position
@@ -94,10 +84,10 @@ public abstract class RefreshAdapter extends RecyclerView.Adapter {
     @Override
     public int getItemCount() {
         int count = getDataCount();
-        if (headerView != null) {
+        if (mHeaderView != null) {
             count += 1;
         }
-        if (footerView != null) {
+        if (mFooterView != null) {
             count += 1;
         }
         return count;
@@ -107,9 +97,9 @@ public abstract class RefreshAdapter extends RecyclerView.Adapter {
 
     @Override
     public int getItemViewType(int position) {
-        if (headerView != null && position == 0) {
+        if (mHeaderView != null && position == 0) {
             return HEADER_TYPE;
-        } else if (footerView != null && position == getItemCount() - 1) {
+        } else if (mFooterView != null && position == getItemCount() - 1) {
             return FOOTER_TYPE;
         }
         return super.getItemViewType(position);

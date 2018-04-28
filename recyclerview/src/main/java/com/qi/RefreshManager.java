@@ -1,80 +1,130 @@
 package com.qi;
 
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
-
-import java.lang.reflect.Field;
-
-import static android.support.v7.widget.RecyclerView.SCROLL_STATE_DRAGGING;
-import static android.support.v7.widget.RecyclerView.SCROLL_STATE_IDLE;
-import static android.support.v7.widget.RecyclerView.SCROLL_STATE_SETTLING;
+import android.view.ViewConfiguration;
 
 /**
  * Creator  liuqi
  * Data     2018/4/24
  * Class    com.qi.RefreshManager
  */
-public class RefreshManager extends RecyclerView.OnScrollListener {
-    private boolean isLoad = true;
-    RecyclerView recyclerView;
-    private View header;
-    private View footer;
+public class RefreshManager extends RecyclerView.OnScrollListener implements View.OnClickListener, View.OnTouchListener {
+    /**
+     * 列表是否是可加载状态
+     */
+    private boolean isLoading = true;
     private OnLoadListener onLoadListener;
+    /**
+     * 是否自动刷新
+     */
+    private boolean mAuto;
+    RecyclerView recyclerView;
+    RecyclerView.Adapter adapter;
+    RecyclerView.LayoutManager mLayoutManager;
+    /**
+     * 手指初次触摸屏幕的位置
+     */
+    private float mDownY = 0;
 
-    public RefreshManager(RecyclerView recyclerView, View header, View footer, OnLoadListener onLoadListener) {
+    private RefreshManager(RecyclerView recyclerView, View headerView, View footerView, OnLoadListener onLoadListener, boolean auto) {
         this.recyclerView = recyclerView;
-        this.header = header;
-        this.footer = footer;
+        this.adapter = recyclerView.getAdapter();
         this.onLoadListener = onLoadListener;
-        recyclerView.addOnScrollListener(this);
-    }
-
-    public static RefreshManager newInstance(Object o, View header, View footer, OnLoadListener onLoadListener) throws IllegalAccessException {
-        Field[] fields = o.getClass().getDeclaredFields();
-        for (Field field : fields) {
-            if (field.isAnnotationPresent(Refresh.class) && field.getType() == RecyclerView.class) {
-                return new RefreshManager((RecyclerView) field.get(o), header, footer, onLoadListener);
-            }
+        this.mAuto = auto;
+        this.mLayoutManager = recyclerView.getLayoutManager();
+        if (adapter instanceof RefreshAdapter) {
+            ((RefreshAdapter) adapter).setFooter(footerView);
         }
-        return null;
+        recyclerView.addOnScrollListener(this);
+        recyclerView.setOnTouchListener(this);
+        footerView.setOnClickListener(this);
     }
 
     @Override
     public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-        Log.d("refresh_tag", dx + "----" + dy);
-        if (dy > 0 && isLoad) {
-            isLoad = false;
-            load();
+        if (!mAuto) return;
+        if (dy == 0) return;
+        load();
+    }
+
+    /**
+     * 加载数据时，列表不可加载,isloadable设置false
+     */
+    private void load() {
+        if (isLoading) {
+            if (onLoadListener != null) {
+                onLoadListener.onLoad();
+            }
         }
+        isLoading = false;
+    }
+
+    /**
+     * 加载成功，刷新数据
+     */
+    public void loadSuccess() {
+        //滑动停止后恢复加载
+        isLoading = true;
+        adapter.notifyDataSetChanged();
+    }
+
+    /**
+     * 加载成功，刷新数据
+     */
+    public void loadSuccess(int positionStart, int itemCount, Object payload) {
+        //滑动停止后恢复加载
+        isLoading = true;
+        adapter.notifyItemRangeChanged(positionStart, itemCount, payload);
+    }
+
+    /**
+     * 加载失败
+     */
+    public void loadFail() {
+        isLoading = true;
     }
 
     @Override
-    public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
-        switch (newState) {
-            case SCROLL_STATE_IDLE:
-                //滑动停止后恢复加载
-                isLoad = true;
-                break;
-            case SCROLL_STATE_DRAGGING:
-                break;
-            case SCROLL_STATE_SETTLING:
-                break;
-        }
+    public void onClick(View v) {
+        load();
     }
 
-    private void load() {
-        if (onLoadListener != null) {
-            RecyclerView.Adapter adapter = recyclerView.getAdapter();
-            if (adapter instanceof RefreshAdapter) {
-                ((RefreshAdapter) adapter).setFooter(footer);
+    @Override
+    public boolean onTouch(View v, MotionEvent e) {
+        switch (e.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                mDownY = e.getY();
+                return true;
+            case MotionEvent.ACTION_MOVE:
+                float my = e.getY();
+                float mDistance = my - mDownY;
+                if (mDistance > ViewConfiguration.get(v.getContext()).getScaledTouchSlop()) {
+                    drawHeader((int) mDistance);
+                }
+                break;
+            case MotionEvent.ACTION_UP:
+                mDownY = 0;
+                drawHeader(0);
+                break;
+        }
+        return false;
+    }
+
+    private void drawHeader(int headerHeight) {
+        if (mLayoutManager instanceof LinearLayoutManager) {
+            int firstItemPosition = ((LinearLayoutManager) mLayoutManager).findFirstCompletelyVisibleItemPosition();
+            if (firstItemPosition == 0) {
+                recyclerView.setPadding(0, headerHeight, 0, 0);
+                recyclerView.invalidate(0, 0, recyclerView.getMeasuredWidth(), headerHeight);
             }
-            onLoadListener.load();
         }
     }
 
     public interface OnLoadListener {
-        void load();
+        void onLoad();
     }
 
     public static class Builder {
@@ -82,12 +132,19 @@ public class RefreshManager extends RecyclerView.OnScrollListener {
         private View header;
         private OnLoadListener onLoadListener;
         private RecyclerView recyclerView;
+        private boolean mAuto;
 
         public Builder recyclerView(RecyclerView recyclerView) {
             this.recyclerView = recyclerView;
             return this;
         }
 
+        /**
+         * 添加加载View
+         *
+         * @param footer
+         * @return
+         */
         public Builder footer(View footer) {
             this.footer = footer;
             return this;
@@ -104,7 +161,12 @@ public class RefreshManager extends RecyclerView.OnScrollListener {
         }
 
         public RefreshManager builder() {
-            return new RefreshManager(recyclerView, header, footer, onLoadListener);
+            return new RefreshManager(recyclerView, header, footer, onLoadListener, mAuto);
+        }
+
+        public Builder auto(boolean auto) {
+            mAuto = auto;
+            return this;
         }
     }
 }
