@@ -1,5 +1,6 @@
 package com.qi;
 
+import android.support.v4.view.ViewCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.MotionEvent;
@@ -11,7 +12,7 @@ import android.view.ViewConfiguration;
  * Data     2018/4/24
  * Class    com.qi.RefreshManager
  */
-public class RefreshManager extends RecyclerView.OnScrollListener implements View.OnClickListener, View.OnTouchListener {
+public class RefreshManager extends RecyclerView.OnScrollListener implements View.OnClickListener {
     /**
      * 列表是否是可加载状态
      */
@@ -24,11 +25,6 @@ public class RefreshManager extends RecyclerView.OnScrollListener implements Vie
     RecyclerView recyclerView;
     RecyclerView.Adapter adapter;
     RecyclerView.LayoutManager mLayoutManager;
-    /**
-     * 手指初次触摸屏幕的位置
-     */
-    private float mDownY = 0;
-
     private RefreshManager(RecyclerView recyclerView, View headerView, View footerView, OnLoadListener onLoadListener, boolean auto) {
         this.recyclerView = recyclerView;
         this.adapter = recyclerView.getAdapter();
@@ -39,7 +35,6 @@ public class RefreshManager extends RecyclerView.OnScrollListener implements Vie
             ((RefreshAdapter) adapter).setFooter(footerView);
         }
         recyclerView.addOnScrollListener(this);
-        recyclerView.setOnTouchListener(this);
         footerView.setOnClickListener(this);
     }
 
@@ -92,36 +87,6 @@ public class RefreshManager extends RecyclerView.OnScrollListener implements Vie
         load();
     }
 
-    @Override
-    public boolean onTouch(View v, MotionEvent e) {
-        switch (e.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                mDownY = e.getY();
-                return true;
-            case MotionEvent.ACTION_MOVE:
-                float my = e.getY();
-                float mDistance = my - mDownY;
-                if (mDistance > ViewConfiguration.get(v.getContext()).getScaledTouchSlop()) {
-                    drawHeader((int) mDistance);
-                }
-                break;
-            case MotionEvent.ACTION_UP:
-                mDownY = 0;
-                drawHeader(0);
-                break;
-        }
-        return false;
-    }
-
-    private void drawHeader(int headerHeight) {
-        if (mLayoutManager instanceof LinearLayoutManager) {
-            int firstItemPosition = ((LinearLayoutManager) mLayoutManager).findFirstCompletelyVisibleItemPosition();
-            if (firstItemPosition == 0) {
-                recyclerView.setPadding(0, headerHeight, 0, 0);
-                recyclerView.invalidate(0, 0, recyclerView.getMeasuredWidth(), headerHeight);
-            }
-        }
-    }
 
     public interface OnLoadListener {
         void onLoad();

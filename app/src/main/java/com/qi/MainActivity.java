@@ -1,5 +1,8 @@
 package com.qi;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.widget.SwipeRefreshLayout;
@@ -39,20 +42,25 @@ public class MainActivity extends AppCompatActivity implements RefreshManager.On
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         TextView footer = new TextView(this);
+        recyclerView = findViewById(R.id.recyclerView);
+        Bitmap bitmap1 = BitmapFactory.decodeResource(getResources(), R.drawable.gif1);
+        Bitmap bitmap2 = BitmapFactory.decodeResource(getResources(), R.drawable.gif2);
+        Bitmap bitmap3 = BitmapFactory.decodeResource(getResources(), R.drawable.gif3);
+        Bitmap bitmap4 = BitmapFactory.decodeResource(getResources(), R.drawable.gif4);
+        Bitmap bitmap5 = BitmapFactory.decodeResource(getResources(), R.drawable.gif5);
         footer.setText("底部啦");
         footer.setLayoutParams(new ViewGroup.LayoutParams(-1, -2));
         footer.setPadding(0, 16, 0, 16);
         footer.setGravity(Gravity.CENTER);
         RecyclerView.LayoutParams layoutParams = new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         footer.setLayoutParams(layoutParams);
-        recyclerView = findViewById(R.id.recyclerView);
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
         RefreshAdapter adapter = new MyAdapter(data);
         recyclerView.setAdapter(adapter);
+        recyclerView.setHeadBitmap(new Bitmap[]{bitmap1, bitmap2, bitmap3, bitmap4, bitmap5});
         refreshManager = new RefreshManager.Builder()
                 .recyclerView(recyclerView)
-                .header(View.inflate(this, R.layout.view_header, null))
                 .footer(footer)
                 .loadListener(this)
                 .auto(false)

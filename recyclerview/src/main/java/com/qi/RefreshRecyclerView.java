@@ -12,8 +12,10 @@ import android.support.v7.widget.RecyclerView;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.ViewConfiguration;
+import android.view.animation.LinearInterpolator;
 
 /**
  * Creator  liuqi
@@ -53,14 +55,18 @@ public class RefreshRecyclerView extends RecyclerView {
     void setHeadBitmap(final Bitmap[] bitmaps) {
         mBitmaps = bitmaps;
         if (bitmaps != null && bitmaps.length > 1) {
-            valueAnimator = ValueAnimator.ofInt(0, bitmaps.length - 1);
-            valueAnimator.setDuration(500);
+            valueAnimator = ValueAnimator.ofInt(0, bitmaps.length);
+            valueAnimator.setDuration(300);
+            valueAnimator.setInterpolator(new LinearInterpolator());
             valueAnimator.setRepeatCount(ValueAnimator.INFINITE);
             valueAnimator.setRepeatMode(ValueAnimator.RESTART);
             valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
                 @Override
                 public void onAnimationUpdate(ValueAnimator animation) {
                     Integer value = (Integer) animation.getAnimatedValue();
+                    if (value == bitmaps.length) {
+                        return;
+                    }
                     currentBitmap = mBitmaps[value];
                     invalidate(0, 0, getMeasuredWidth(), (int) mDistance);
                 }
@@ -68,38 +74,33 @@ public class RefreshRecyclerView extends RecyclerView {
         }
     }
 
+
     @Override
     public boolean onTouchEvent(MotionEvent e) {
         switch (e.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 mDownY = e.getY();
-                return true;
+                break;
             case MotionEvent.ACTION_MOVE:
                 float my = e.getY();
                 mDistance = my - mDownY;
-                if (mDistance > ViewConfiguration.get(getContext()).getScaledTouchSlop()) {
-                    drawHeader();
+                if (computeVerticalScrollOffset() == 0 && mDistance > ViewConfiguration.get(getContext()).getScaledTouchSlop()) {
+                    setPadding(0, (int) mDistance, 0, 0);
+                    if (!valueAnimator.isStarted()) {
+                        valueAnimator.start();
+                    }
                 }
                 break;
             case MotionEvent.ACTION_UP:
-                mDownY = 0;
                 valueAnimator.cancel();
-                drawHeader();
+                currentBitmap = null;
+                setPadding(0, 0, 0, 0);
+                invalidate(0, 0, getMeasuredWidth(), (int) mDistance);
+                mDownY = 0;
+                mDistance = 0;
                 break;
         }
         return super.onTouchEvent(e);
-    }
-
-    private void drawHeader() {
-        LayoutManager layoutManager = getLayoutManager();
-        if (layoutManager instanceof LinearLayoutManager) {
-            int firstItemPosition = ((LinearLayoutManager) layoutManager).findFirstCompletelyVisibleItemPosition();
-            if (firstItemPosition == 0) {
-                setPadding(0, (int) mDistance, 0, 0);
-                invalidate(0, 0, getMeasuredWidth(), (int) mDistance);
-                if (!valueAnimator.isStarted()) valueAnimator.start();
-            }
-        }
     }
 
     @Override
