@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="TitleView">
+        <attr name="navigationPaddingLeft" format="dimension|reference" />
+        <attr name="navigationPaddingRight" format="dimension|reference" />
+        <attr name="navigationPaddingTop" format="dimension|reference" />
+        <attr name="navigationPaddingBottom" format="dimension|reference" />
+        <attr name="navigationSrc" format="reference" />
+
+        <attr name="titlePaddingLeft" format="dimension|reference" />
+        <attr name="titlePaddingRight" format="dimension|reference" />
+        <attr name="titlePaddingTop" format="dimension|reference" />
+        <attr name="titlePaddingBottom" format="dimension|reference" />
+        <attr name="titleText" format="string|reference" />
+        <attr name="titleSize" format="dimension|reference" />
+        <attr name="titleColor" format="color|reference" />
+        <attr name="titleStyle">
+            <enum name="normal" value="0" />
+            <enum name="bold" value="1" />
+            <enum name="italic" value="2" />
+        </attr>
+
+        <attr name="funcPaddingLeft" format="dimension|reference" />
+        <attr name="funcPaddingRight" format="dimension|reference" />
+        <attr name="funcPaddingTop" format="dimension|reference" />
+        <attr name="funcPaddingBottom" format="dimension|reference" />
+        <attr name="funcSrc" format="reference" />
+    </declare-styleable>
+</resources>
