@@ -9,6 +9,7 @@ import android.support.v7.widget.RecyclerView;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -20,47 +21,39 @@ import java.util.concurrent.Executors;
  * Data     2018/4/24
  * Class    com.qi.MainActivity
  */
-public class MainActivity extends AppCompatActivity implements RefreshManager.OnLoadListener {
+public class MainActivity extends AppCompatActivity implements RefreshRecyclerView.OnRefreshListener {
 
     RefreshRecyclerView recyclerView;
     ExecutorService executorService = Executors.newCachedThreadPool();
-    ArrayList data;
-    RefreshManager refreshManager;
-
-    {
-        data = new ArrayList();
-        data.add("你好吗");
-        data.add("你好吗");
-        data.add("你好吗");
-    }
+    private MyAdapter adapter;
+    private TextView mFooter;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        TextView footer = new TextView(this);
-        footer.setText("底部啦");
-        footer.setLayoutParams(new ViewGroup.LayoutParams(-1, -2));
-        footer.setPadding(0, 16, 0, 16);
-        footer.setGravity(Gravity.CENTER);
+        mFooter = new TextView(this);
+        mFooter.setText("底部啦");
+        mFooter.setLayoutParams(new ViewGroup.LayoutParams(-1, -2));
+        mFooter.setPadding(0, 16, 0, 16);
+        mFooter.setGravity(Gravity.CENTER);
         RecyclerView.LayoutParams layoutParams = new RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        footer.setLayoutParams(layoutParams);
+        mFooter.setLayoutParams(layoutParams);
         recyclerView = findViewById(R.id.recyclerView);
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(layoutManager);
-        RefreshAdapter adapter = new MyAdapter(data);
+        adapter = new MyAdapter();
         recyclerView.setAdapter(adapter);
-        refreshManager = new RefreshManager.Builder()
-                .recyclerView(recyclerView)
-                .header(View.inflate(this, R.layout.view_header, null))
-                .footer(footer)
-                .loadListener(this)
-                .auto(false)
-                .builder();
+        recyclerView.setOnRefreshListener(this);
+        recyclerView.setFooter(mFooter);
+        ProgressBar headerView = new ProgressBar(this);
+        recyclerView.setHeader(headerView);
     }
 
+
     @Override
-    public void onLoad() {
+    public void onRefresh() {
+        mFooter.setText("正在加载");
         executorService.execute(new Runnable() {
             @Override
             public void run() {
@@ -69,12 +62,8 @@ public class MainActivity extends AppCompatActivity implements RefreshManager.On
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            if (data.size() % 2 == 0)
-                                refreshManager.loadFail();
-                            data.add("你好吗");
-                            data.add("你好吗");
-                            data.add("你好吗");
-                            refreshManager.loadSuccess();
+                            adapter.addItems();
+                            recyclerView.finishRefresh();
                         }
                     });
                 } catch (InterruptedException e) {
@@ -82,5 +71,10 @@ public class MainActivity extends AppCompatActivity implements RefreshManager.On
                 }
             }
         });
+    }
+
+    @Override
+    public void onFinish() {
+        mFooter.setText("加载完毕");
     }
 }

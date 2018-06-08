@@ -9,40 +9,53 @@ import android.view.ViewGroup;
  * Data     2018/4/24
  * Class    com.qi.RefreshAdapter
  */
-public abstract class RefreshAdapter extends RecyclerView.Adapter {
+public abstract class RefreshAdapter<VH extends RecyclerView.ViewHolder> extends RecyclerView.Adapter<VH> {
 
     private View mHeaderView;
     private View mFooterView;
     private static final int HEADER_TYPE = 1;
     private static final int FOOTER_TYPE = 2;
 
-    public void setHeader(View headerView) {
-        if (mHeaderView == headerView) {
-            return;
+    protected void setHeader(View headerView) {
+        if (mHeaderView != null) {
+            notifyItemRemoved(0);
         }
-        this.mHeaderView = headerView;
-        notifyItemChanged(0);
+        mHeaderView = headerView;
+        notifyItemInserted(0);
     }
 
-    public void setFooter(View footerView) {
-        if (this.mFooterView == footerView) {
-            return;
+    protected void addHeader(View headerView) {
+        if (headerView == null) return;
+        mHeaderView = headerView;
+        notifyItemInserted(0);
+    }
+
+    protected void removeHeader() {
+        if (mHeaderView != null) {
+            notifyItemRemoved(0);
+            mHeaderView = null;
         }
-        this.mFooterView = footerView;
-        notifyItemChanged(getItemCount() - 1);
+    }
+
+    protected void setFooter(View footerView) {
+        if (mFooterView != null) {
+            notifyItemRemoved(getItemCount() - 1);
+        }
+        mFooterView = footerView;
+        notifyItemInserted(getItemCount() - 1);
     }
 
     @Override
-    public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public VH onCreateViewHolder(ViewGroup parent, int viewType) {
         if (viewType == HEADER_TYPE)
-            return new ViewHolder(mHeaderView);
+            return (VH) new ViewHolder(mHeaderView);
         else if (viewType == FOOTER_TYPE)
-            return new ViewHolder(mFooterView);
+            return (VH) new ViewHolder(mFooterView);
         return onNormalCreateViewHolder(parent);
     }
 
     @Override
-    public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+    public void onBindViewHolder(VH holder, int position) {
         if (getItemViewType(position) == HEADER_TYPE)
             onBindHeaderViewHolder(holder, position);
         else if (getItemViewType(position) == FOOTER_TYPE)
@@ -55,7 +68,7 @@ public abstract class RefreshAdapter extends RecyclerView.Adapter {
         }
     }
 
-    public abstract RecyclerView.ViewHolder onNormalCreateViewHolder(ViewGroup parent);
+    public abstract VH onNormalCreateViewHolder(ViewGroup parent);
 
     /**
      * 数据条目展示

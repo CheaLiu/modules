@@ -1,19 +1,16 @@
 package com.qi;
 
-import android.animation.ValueAnimator;
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.graphics.Rect;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.text.TextPaint;
-import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
+import android.view.View;
 import android.view.ViewConfiguration;
+
+import static com.qi.RefreshRecyclerView.RefreshState.FINISH;
+import static com.qi.RefreshRecyclerView.RefreshState.REFRESHING;
 
 /**
  * Creator  liuqi
@@ -21,15 +18,13 @@ import android.view.ViewConfiguration;
  * Class    com.qi.RefreshRecyclerView
  */
 public class RefreshRecyclerView extends RecyclerView {
-
-    private float mDownY = 0;
+    private float mDy = 0;
     private float mDistance;
-    private String mTtext;
-    private Bitmap[] mBitmaps;
-    private Bitmap currentBitmap;
-    ValueAnimator valueAnimator;
-    private TextPaint mTextPaint;
-    private Rect mTextBound;
+    private View mHeaderView;
+    private View mFooterView;
+    private int mRefreshState = FINISH;
+    private OnRefreshListener onRefreshListener;
+
 
     public RefreshRecyclerView(Context context) {
         super(context);
@@ -43,80 +38,100 @@ public class RefreshRecyclerView extends RecyclerView {
         super(context, attrs, defStyle);
     }
 
-    void setHeadText(String text) {
-        mTtext = text;
-        mTextPaint = new TextPaint();
-        mTextBound = new Rect();
-        mTextPaint.getTextBounds(text, 0, text.length(), mTextBound);
+    public void setHeader(View HeaderView) {
+        mHeaderView = HeaderView;
     }
 
-    void setHeadBitmap(final Bitmap[] bitmaps) {
-        mBitmaps = bitmaps;
-        if (bitmaps != null && bitmaps.length > 1) {
-            valueAnimator = ValueAnimator.ofInt(0, bitmaps.length - 1);
-            valueAnimator.setDuration(500);
-            valueAnimator.setRepeatCount(ValueAnimator.INFINITE);
-            valueAnimator.setRepeatMode(ValueAnimator.RESTART);
-            valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-                @Override
-                public void onAnimationUpdate(ValueAnimator animation) {
-                    Integer value = (Integer) animation.getAnimatedValue();
-                    currentBitmap = mBitmaps[value];
-                    invalidate(0, 0, getMeasuredWidth(), (int) mDistance);
-                }
-            });
+    public void setFooter(View footerView) {
+        mFooterView = footerView;
+        Adapter adapter = getAdapter();
+        if (adapter != null) {
+            RefreshAdapter refreshAdapter = (RefreshAdapter) adapter;
+            refreshAdapter.setFooter(footerView);
+        }
+    }
+
+    public void finishRefresh() {
+        onRefreshListener.onFinish();
+        mRefreshState = FINISH;
+        Adapter adapter = getAdapter();
+        if (adapter != null) {
+            RefreshAdapter refreshAdapter = (RefreshAdapter) adapter;
+            if (indexOfChild(mHeaderView) != -1) {
+                detachViewFromParent(mHeaderView);
+            }
+            refreshAdapter.removeHeader();
         }
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent e) {
+        RefreshAdapter adapter = (RefreshAdapter) getAdapter();
+        LinearLayoutManager linearLayoutManager = (LinearLayoutManager) getLayoutManager();
+        if (linearLayoutManager.getOrientation() == LinearLayoutManager.VERTICAL) {
+            verticalTouchEvent(e, adapter, linearLayoutManager);
+        }
+        return super.onTouchEvent(e);
+    }
+
+    @Override
+    public void onScrolled(int dx, int dy) {
+        super.onScrolled(dx, dy);
+        LinearLayoutManager linearLayoutManager = (LinearLayoutManager) getLayoutManager();
+        RefreshAdapter adapter = (RefreshAdapter) getAdapter();
+        int lcvp = linearLayoutManager.findLastCompletelyVisibleItemPosition();
+        if (dy > 0 && lcvp >= adapter.getItemCount() - 2 && mRefreshState == FINISH) {
+            //手势向上滑动，子条目数大于屏幕可显示的条目数，显示的是最后一条数据（倒数第二个条目）,刷新已经完成
+            mRefreshState = REFRESHING;
+            if (onRefreshListener != null) {
+                onRefreshListener.onRefresh();
+            }
+        }
+    }
+
+    private boolean verticalTouchEvent(MotionEvent e, RefreshAdapter adapter, LinearLayoutManager linearLayoutManager) {
+        int scaledTouchSlop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
+        int fvp = linearLayoutManager.findFirstVisibleItemPosition();
         switch (e.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                mDownY = e.getY();
+                mDy = e.getY();
                 return true;
             case MotionEvent.ACTION_MOVE:
                 float my = e.getY();
-                mDistance = my - mDownY;
-                if (mDistance > ViewConfiguration.get(getContext()).getScaledTouchSlop()) {
-                    drawHeader();
+                mDistance = my - mDy;
+                if (mDistance > scaledTouchSlop && fvp == 0 && mRefreshState == FINISH) {
+                    mRefreshState = REFRESHING;
+                    adapter.addHeader(mHeaderView);
+                    if (onRefreshListener != null) {
+                        onRefreshListener.onRefresh();
+                    }
                 }
                 break;
             case MotionEvent.ACTION_UP:
-                mDownY = 0;
-                valueAnimator.cancel();
-                drawHeader();
+                mDy = 0;
                 break;
         }
         return super.onTouchEvent(e);
     }
 
-    private void drawHeader() {
-        LayoutManager layoutManager = getLayoutManager();
-        if (layoutManager instanceof LinearLayoutManager) {
-            int firstItemPosition = ((LinearLayoutManager) layoutManager).findFirstCompletelyVisibleItemPosition();
-            if (firstItemPosition == 0) {
-                setPadding(0, (int) mDistance, 0, 0);
-                invalidate(0, 0, getMeasuredWidth(), (int) mDistance);
-                if (!valueAnimator.isStarted()) valueAnimator.start();
-            }
-        }
+    public void setOnRefreshListener(OnRefreshListener onRefreshListener) {
+        this.onRefreshListener = onRefreshListener;
     }
 
-    @Override
-    public void draw(Canvas c) {
-        super.draw(c);
-        String text = "";
-        if (!TextUtils.isEmpty(mTtext)) {
-            if (mDistance > 0) {
-                text = mTtext;
-            } else if (mDistance == 0) {
-                text = "";
-            }
-            c.drawText(text, (getMeasuredWidth() - mTextBound.width()) / 2, (mDistance - mTextBound.height()) / 2, mTextPaint);
-        }
-        if (currentBitmap != null) {
-            Paint paint = new Paint();
-            c.drawBitmap(currentBitmap, (getMeasuredWidth() - currentBitmap.getWidth()) / 2, (mDistance - currentBitmap.getHeight()) / 2, paint);
-        }
+    /**
+     * 刷新状态
+     */
+    public interface RefreshState {
+        int REFRESHING = 1;
+        int FINISH = 2;
+    }
+
+    /**
+     * 正在刷新接口
+     */
+    interface OnRefreshListener {
+        void onRefresh();
+
+        void onFinish();
     }
 }

@@ -13,11 +13,8 @@ import java.util.ArrayList;
  * Class    com.qi.MyAdapter
  */
 public class MyAdapter extends RefreshAdapter {
-    private ArrayList<String> data;
 
-    public MyAdapter(ArrayList<String> data) {
-        this.data = data;
-    }
+    private int count = 30;
 
     @Override
     public RecyclerView.ViewHolder onNormalCreateViewHolder(ViewGroup parent) {
@@ -27,8 +24,7 @@ public class MyAdapter extends RefreshAdapter {
     @Override
     protected void onBindNormalViewHolder(RecyclerView.ViewHolder holder, int position) {
         TextView itemView = (TextView) holder.itemView;
-        itemView.setPadding(30,30,30,30);
-        itemView.setText(data.get(position) + "---------" + position);
+        itemView.setText(position + "---------" + position);
     }
 
     @Override
@@ -41,8 +37,14 @@ public class MyAdapter extends RefreshAdapter {
 
     }
 
+    public void addItems() {
+        int lastCount = count;
+        count += 10;
+        notifyItemRangeInserted(lastCount, 10);
+    }
+
     @Override
     public int getDataCount() {
-        return data.size();
+        return count;
     }
 }
